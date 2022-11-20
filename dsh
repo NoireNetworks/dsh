@@ -1,0 +1,18 @@
+#!/bin/bash
+REMOTE=$1
+
+# Bind remote Docker socket to /tmp/docker.sock
+dockerssh() {
+  rm -f /tmp/docker.sock
+  cleanup() {
+    ssh -q -S docker-socket -O exit "${REMOTE}"
+    rm -f /tmp/docker.sock
+  }
+  trap "cleanup" EXIT
+  ssh -M -S docker-socket -fnNT -L /tmp/docker.sock:/var/run/docker.sock "${REMOTE}"
+  DOCKER_HOST=unix:///tmp/docker.sock eval "$*"
+}
+
+# Shift 1 to avoid passing $1 back into dockerssh
+shift 1
+dockerssh $@
